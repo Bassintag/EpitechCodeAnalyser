@@ -65,10 +65,11 @@ def scan_file(f):
                 check_method(lines, line_number + 1)
             if function_count > 5:
                 log_error("Illegal number of functions (> 5)", "line %i (whole function)" % (line_number + 1), "Remove or merge some functions", line)
-        if re.match(".*(?<=(\w|\)|}))(=|<|>|<=|>=|\+|-|/|%|\+=|-=|/=|\*=|%=|\|\||&&|==|!=|\||&|\^|>>|<<)(?=(\w|\s|\*))", line):
-            log_error("Missing white space before operator/comparator", "line %i" % (line_number + 1), "Add a space before the operator/comparator", line)
-        if re.match(".*(?<=(\w|\s|\*))(=|<|>|<=|>=|\+|-|/|%|\+=|-=|/=|\*=|%=|\|\||&&|==|!=|\||&|\^|>>|<<)(?=(\w|\(|\*|{))", line):
-            log_error("Missing white space after operator/comparator", "line %i" % (line_number + 1), "Add a space after the operator/comparator", line)
+        if not line.lstrip().startswith("#"):
+            if re.match(".*(?<=(\w|\)|}))(=|<|>|<=|>=|\+|-|/|%|\+=|-=|/=|\*=|%=|\|\||&&|==|!=|\^|>>|<<)(?=(\w|\s|\*|\(|{|(-(\w|\(|\*))))", line):
+                log_error("Missing white space before operator/comparator", "line %i" % (line_number + 1), "Add a space before the operator/comparator", line)
+            if re.match(".*(?<=(\w|\)))\s*(=|<|>|<=|>=|\+|-|/|%|\+=|-=|/=|\*=|%=|\|\||&&|==|!=|\^|>>|<<)(?=(\w|\(|\*|{|(-(\w|\(|\*))))", line):
+                log_error("Missing white space after operator/comparator", "line %i" % (line_number + 1), "Add a space after the operator/comparator", line)
         if re.match("^(\s+)?{", lines[line_number - 1]):
             identation += 2
         if re.match("^.*}(\s+)?$", line):
