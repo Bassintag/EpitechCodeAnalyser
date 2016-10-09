@@ -9,8 +9,10 @@ import re
 class colors:
     clear = '\033[0;74m'
     error = '\033[1;31m'
+    good = '\033[0;32m'
     warning = '\033[1;33m'
-    
+    bold = '\033[1m'
+
 def log(message, color=colors.clear):
     print(color + message + colors.clear);
 
@@ -37,12 +39,12 @@ def open_source_file(path):
     f = open(path)
     return f
 
-
 def scan_file(f):
-    lines = [l for l in f]
+    lines = [l.replace("\t", "        ") for l in f]
     check_header(lines)
     line_number = 9
-    function_count = 0    
+    function_count = 0
+    identation = 0
     while line_number < len(lines):
         line = lines[line_number]
         if len(line) > 80:
@@ -57,6 +59,21 @@ def scan_file(f):
                 check_method(lines, line_number + 1)
             if function_count > 5:
                 log_error("Illegal number of functions (> 5)", "line %i (whole function)" % (line_number + 1), "Remove or merge some functions", line)
+        if re.match("^(\s+)?{", lines[line_number - 1]):
+            identation += 2
+        if re.match("^(\s+)?((else if|if|while|for)(\s+|\()|else(\s+)?)", lines[line_number - 1]):
+            identation += 2
+        if re.match("^.*}(\s+)?$", line):
+            identation -= 2
+        if re.match("^(\s+)?((else if|if|while|for)(\s+|\()|else(\s+)?)", lines[line_number - 2]) and not "{" in lines[line_number - 2] and not "{" in lines[line_number - 1]:
+            identation -= 2
+        if re.match("^.*}(\s+)?$", lines[line_number - 1]):
+            identation -= 2
+        if line.strip() != "":
+            spaces = len(line) - len(line.lstrip())
+            if not spaces == identation:
+                log_error("Illegal identation (expected %i spaces)" % identation, "line %i" % (line_number + 1), "Fix your identation with C-c C-q or use Tab", line)
+                identation = spaces
         line_number += 1
         
 def check_method(lines, starting_line):
@@ -66,7 +83,6 @@ def check_method(lines, starting_line):
     initializing_vars = True
     line_index = starting_line
     lines_count = 0
-    line = lines[line_index]
     while not brackets_to_close == 0:
         line_index += 1
         lines_count += 1
@@ -133,16 +149,17 @@ def main():
     error_count = 0
     log("\n/!\\ DISCLAIMER /!\\", colors.warning)
     log("Compile your files before using this utility")
-    log("This utility isn't official and is only here to help you make less mistakes, DO NOT use it as a way to ensure your code is correct\n")
+    log("This utility isn't official and is only here to help you make less mistakes, DO NOT use it as a way to ensure your code is correct")
+    log("USING THIS ON PROJECT SOURCE FILES IS CONSIDERED CHEATING, USE AT YOUR OWN RISK,I AM IN NO WAY RESPONSIBLE FOR YOUR USAGE OF THIS SCRIPT\n", colors.bold)
     f = open_source_file(args[1])
     if not f:
         return
     scan_file(f)
-    print("Done checking %s" % args[1])
+    log("Done checking %s" % args[1])
     if error_count > 0:
-        print("There is a grand total of %i error(s) in your file" % error_count)
+        log("There is a grand total of %i error(s) in your file" % error_count)
     else:
-        print("No error has been detected, however this script might not find everything so be carefull")
+        log("No error has been detected, however this script might not find everything so be carefull", colors.good)
     
 if __name__ == "__main__":
     main()
