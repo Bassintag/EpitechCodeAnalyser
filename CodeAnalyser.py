@@ -7,8 +7,8 @@ import os
 import re
 
 class colors:
-    clear = '\033[0;37m'
-    error = '\033[1;36;45m'
+    clear = '\033[0;74m'
+    error = '\033[1;31m'
     warning = '\033[1;33m'
     
 def log(message, color=colors.clear):
@@ -87,12 +87,12 @@ def check_method(lines, starting_line):
         if initializing_vars:
             if line.strip() == "":
                 initializing_vars = False
-            elif not re.match("^(\s+\w+)?(\s+)?\w+\*?\s+\*?\w+", line):
+            elif not re.match("^(\s+\w+)?(\s+)?\w+\*?\s+\*?\w+(\[.*\])?;", line):
                 initializing_vars = False
                 if not lines_count == 1:
                     log_error("Missing empty line", "line %i" % (line_index + 1), "Add an empty line after you're done declaring your variables", line)
         else:
-            if re.match("^(\s+\w+)?(\s+)?\w+\*?\s+\*?\w+", line) and not re.match("^\s+?return", line) and not "=" in line:
+            if re.match("^(\s+\w+)?(\s+)?\w+\*?\s+\*?\w+(\[.*\])?;", line) and not re.match("^\s+?return", line) and not "=" in line:
                 log_error("Illegal variable declaration", "line %i" % (line_index + 1), "Declare this variable before executing commands in this method", line)
             elif line.strip() == "":
                 log_error("Illegal empty line", "line %i" % (line_index + 1), "Remove this empty line", line)
@@ -103,6 +103,8 @@ def check_method(lines, starting_line):
                     log_error("Missing surrounding parenthesis", "line %i" % (line_index + 1), "Add parenthesis before and after your value", line)
             elif re.match("^(\s+)?(else if|if|while)\(", line):
                 log_error("Missing whitespace", "line %i" % (line_index + 1), "Add a white space between your flow control keyword and it's following parenthesis", line)
+            elif re.match("^(\s+)?(for|switch)(\s+)?\(", line):
+                log_error("Illegal C keyword", "line %i" % (line_index + 1), "Remove the incorrect keywords (for, switch, ...)", line);
     if lines_count - 1 > 25:
         log_error("Illegal number of lines in function (%i > 25)" % (lines_count - 1), "line %i" % (line_index - lines_count % 25), "Reduce number of lines, try using less variables for example")
     return line_index - starting_line
