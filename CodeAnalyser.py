@@ -39,8 +39,13 @@ def open_source_file(path):
     f = open(path)
     return f
 
+def parse_tabs(line):
+    while "\t" in line:
+        line = line.replace("\t", " " * (8 - line.index("\t") % 8), 1)
+    return line
+
 def scan_file(f):
-    lines = [l.replace("\t", "        ") for l in f]
+    lines = [parse_tabs(l) for l in f]
     check_header(lines)
     line_number = 9
     function_count = 0
@@ -69,9 +74,9 @@ def scan_file(f):
             identation -= 2
         if re.match("^.*}(\s+)?$", lines[line_number - 1]):
             identation -= 2
-        if line.strip() != "":
+        if line.strip() is not "":
             spaces = len(line) - len(line.lstrip())
-            if not spaces == identation:
+            if not spaces is identation:
                 log_error("Illegal identation (expected %i spaces)" % identation, "line %i" % (line_number + 1), "Fix your identation with C-c C-q or use Tab", line)
                 identation = spaces
         line_number += 1
@@ -83,6 +88,7 @@ def check_method(lines, starting_line):
     initializing_vars = True
     line_index = starting_line
     lines_count = 0
+    alignement = re.search("^((unsigned|signed)?\s+)?(\w+)(\*+)?\s+(?=\w|\*)", lines[line_index - 1]).end()
     while not brackets_to_close == 0:
         line_index += 1
         lines_count += 1
@@ -107,10 +113,12 @@ def check_method(lines, starting_line):
                 initializing_vars = False
                 if not lines_count == 1:
                     log_error("Missing empty line", "line %i" % (line_index + 1), "Add an empty line after you're done declaring your variables", line)
+            elif re.search("^((unsigned|signed)?\s+)?(\w+)(\*+)?\s+(?=\w|\*)", line).end() != alignement:
+                log_error("Illegal variable declaration alignement", "line %i" % (line_index + 1), "Use alt-i to correct your alignement", line)    
         else:
             if re.match("^(\s+\w+)?(\s+)?\w+\*?\s+\*?\w+(\[.*\])?;", line) and not re.match("^\s+?return", line) and not "=" in line:
                 log_error("Illegal variable declaration", "line %i" % (line_index + 1), "Declare this variable before executing commands in this method", line)
-            elif line.strip() == "":
+            elif line.strip() is "":
                 log_error("Illegal empty line", "line %i" % (line_index + 1), "Remove this empty line", line)
             elif re.match("^\s+return(\s+?|;|\()", line):
                 if re.match("^(\s+)?return\(", line):
@@ -157,7 +165,7 @@ def main():
     scan_file(f)
     log("Done checking %s" % args[1])
     if error_count > 0:
-        log("There is a grand total of %i error(s) in your file" % error_count)
+        log("There is a grand total of " + colors.error + "%i" % error_count + " error(s)" + colors.clear + " in your file")
     else:
         log("No error has been detected, however this script might not find everything so be carefull", colors.good)
     
