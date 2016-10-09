@@ -45,14 +45,15 @@ def parse_tabs(line):
     return line
 
 def scan_file(f):
-    lines = [parse_tabs(l) for l in f]
+    unparsed_lines = [l for l in f]
+    lines = [parse_tabs(l) for l in unparsed_lines]
     check_header(lines)
     line_number = 9
     function_count = 0
     identation = 0
     while line_number < len(lines):
         line = lines[line_number]
-        if len(line) > 80:
+        if len(unparsed_lines[line_number]) > 80:
             log_error("Illegal line length (> 80)", "line %i" % (line_number + 1), "Rename your variables with shorter names or refactor your expression", line)
         if line.endswith(" \n"):
             log_error("White space at the end of a line", "line %i" % (line_number + 1), "Remove the whitespace", line)
@@ -64,16 +65,22 @@ def scan_file(f):
                 check_method(lines, line_number + 1)
             if function_count > 5:
                 log_error("Illegal number of functions (> 5)", "line %i (whole function)" % (line_number + 1), "Remove or merge some functions", line)
+        if re.match(".*(?<=(\w|\)|}))(=|<|>|<=|>=|\+|-|/|%|\+=|-=|/=|\*=|%=|\|\||&&|==|!=|\||&|\^|>>|<<)(?=(\w|\s|\*))", line):
+            log_error("Missing white space before operator/comparator", "line %i" % (line_number + 1), "Add a space before the operator/comparator", line)
+        if re.match(".*(?<=(\w|\s|\*))(=|<|>|<=|>=|\+|-|/|%|\+=|-=|/=|\*=|%=|\|\||&&|==|!=|\||&|\^|>>|<<)(?=(\w|\(|\*|{))", line):
+            log_error("Missing white space after operator/comparator", "line %i" % (line_number + 1), "Add a space after the operator/comparator", line)
         if re.match("^(\s+)?{", lines[line_number - 1]):
-            identation += 2
-        if re.match("^(\s+)?((else if|if|while|for)(\s+|\()|else(\s+)?)", lines[line_number - 1]):
             identation += 2
         if re.match("^.*}(\s+)?$", line):
             identation -= 2
-        if re.match("^(\s+)?((else if|if|while|for)(\s+|\()|else(\s+)?)", lines[line_number - 2]) and not "{" in lines[line_number - 2] and not "{" in lines[line_number - 1]:
+        if re.match("^(\s+)?((else if|if|while|for)(\s+|\()|else(\s+)?)", lines[line_number - 1]):
+            identation += 2
+        elif re.match("^(\s+)?((else if|if|while|for)(\s+|\()|else(\s+)?)", lines[line_number - 2]) and not "{" in lines[line_number - 2] and not "{" in lines[line_number - 1]:
             identation -= 2
         if re.match("^.*}(\s+)?$", lines[line_number - 1]):
             identation -= 2
+        if identation < 0:
+            identation = 0
         if line.strip() is not "":
             spaces = len(line) - len(line.lstrip())
             if not spaces is identation:
