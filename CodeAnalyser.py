@@ -57,7 +57,7 @@ def scan_file(f):
             log_error("Illegal line length (> 80)", "line %i" % (line_number + 1), "Rename your variables with shorter names or refactor your expression", line)
         if line.endswith(" \n"):
             log_error("White space at the end of a line", "line %i" % (line_number + 1), "Remove the whitespace", line)
-        if re.match("^(\w+(\s+)?){2,}\(([^!@#$+%^]+)?\)", line):
+        if re.match("^(\w+(\s+)?){2,}\(([^!@#$+%^]+)?\)\s*(?!;)", line):
             function_count += 1 
             if "{" in line:
                 log_error("Illegal bracket position", "line %i" % (line_number + 1), "Place the bracket on the next line", line)
@@ -87,17 +87,24 @@ def scan_file(f):
             if not spaces is identation:
                 log_error("Illegal identation (expected %i spaces)" % identation, "line %i" % (line_number + 1), "Fix your identation with C-c C-q or use Tab", line)
                 identation = spaces
+        else:
+            if line_number > 0 and lines[line_number - 1].strip() is "":
+                log_error("Illegal empty line", "line %i" % (line_number + 1), "Remove this empty line")
         line_number += 1
         
 def check_method(lines, starting_line):
     if not lines[starting_line].endswith("{\n"):
         log_error("Illegal function syntax", "line %i" % starting_line, "This line should only contain the opening bracket", lines[starting_line])
+    if starting_line > 1 and lines[starting_line - 2].strip() is not "":
+        log_error("Missing empty line", "line %i" % starting_line - 1, "There should be an empty line before the start of your function", lines[starting_line - 1])
     brackets_to_close = 1
     initializing_vars = True
     line_index = starting_line
     lines_count = 0
     alignement = re.search("^((unsigned|signed)?\s+)?(\w+)(\*+)?\s+(?=\w|\*)", lines[line_index - 1]).end()
-    while not brackets_to_close == 0:
+    if alignement % 8 is not 0:
+        log_error("Illegal function name alignement", "line %i" % (starting_line), "Use Alt-i to align your function name properly", lines[starting_line - 1])
+    while not brackets_to_close is 0:
         line_index += 1
         lines_count += 1
         line = lines[line_index]
@@ -137,6 +144,8 @@ def check_method(lines, starting_line):
                 log_error("Missing whitespace", "line %i" % (line_index + 1), "Add a white space between your flow control keyword and it's following parenthesis", line)
             elif re.match("^(\s+)?(for|switch)(\s+)?\(", line):
                 log_error("Illegal C keyword", "line %i" % (line_index + 1), "Remove the incorrect keywords (for, switch, ...)", line);
+    if line_index + 1 < len(lines) and not lines[line_index + 1].strip() is "":
+        log_error("Missing empty line", "line %i" % (line_index + 1), "There should be an empty line after the end of your function", lines[line_index])        
     if lines_count - 1 > 25:
         log_error("Illegal number of lines in function (%i > 25)" % (lines_count - 1), "line %i" % (line_index - lines_count % 25), "Reduce number of lines, try using less variables for example")
     return line_index - starting_line
