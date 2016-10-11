@@ -70,15 +70,15 @@ def scan_file(f):
                 log_error("Missing white space before operator/comparator", "line %i" % (line_number + 1), "Add a space before the operator/comparator", line)
             if re.match(".*(?<=(\w|\)))\s*(=|<|>|<=|>=|\+|-|/|%|\+=|-=|/=|\*=|%=|\|\||&&|==|!=|\^|>>|<<)(?=(\w|\(|\*|{|(-(\w|\(|\*))))", line):
                 log_error("Missing white space after operator/comparator", "line %i" % (line_number + 1), "Add a space after the operator/comparator", line)
-        if re.match("^(\s+)?{", lines[line_number - 1]):
+        if "{" in lines[line_number - 1]:
             identation += 2
-        if re.match("^.*}(\s+)?$", line):
+        if "}" in line:
             identation -= 2
-        if re.match("^(\s+)?((else if|if|while|for)(\s+|\()|else(\s+)?)", lines[line_number - 1]):
+        if re.match("^\s*((else if|if|while|for)(\s+|\()|else(\s+)?)", lines[line_number - 1]):
             identation += 2
-        elif re.match("^(\s+)?((else if|if|while|for)(\s+|\()|else(\s+)?)", lines[line_number - 2]) and not "{" in lines[line_number - 2] and not "{" in lines[line_number - 1]:
+        elif re.match("^\s*?((else if|if|while|for)(\s+|\()|else(\s+)?)", lines[line_number - 2]) and not "{" in lines[line_number - 2] and not "{" in lines[line_number - 1]:
             identation -= 2
-        if re.match("^.*}(\s+)?$", lines[line_number - 1]):
+        if "}" in lines[line_number - 1]:
             identation -= 2
         if identation < 0:
             identation = 0
@@ -175,7 +175,7 @@ def main():
     log("\n/!\\ DISCLAIMER /!\\", colors.warning)
     log("Compile your files before using this utility")
     log("This utility isn't official and is only here to help you make less mistakes, DO NOT use it as a way to ensure your code is correct")
-    log("USING THIS ON PROJECT SOURCE FILES IS CONSIDERED CHEATING, USE AT YOUR OWN RISK,I AM IN NO WAY RESPONSIBLE FOR YOUR USAGE OF THIS SCRIPT\n", colors.bold)
+    log("USING THIS ON PROJECT SOURCE FILES IS CONSIDERED CHEATING, USE AT YOUR OWN RISK, I AM IN NO WAY RESPONSIBLE FOR YOUR USAGE OF THIS SCRIPT\n", colors.bold)
     f = open_source_file(args[1])
     if not f:
         return
