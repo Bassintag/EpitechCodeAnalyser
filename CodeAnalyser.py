@@ -22,7 +22,7 @@ def log_error(error_type, location="in file", advice=None, line=None):
     log("   Error type: %s" % error_type)
     log("   Error location: %s" % location)
     if line is not None:
-        log("   |-> Line: %s " % line)
+        log("   |-> Line: %s " % line[:-1])
     if advice is not None:
         log("   Advice: " + advice)
     log("--------------------------------\n")
@@ -57,7 +57,7 @@ def scan_file(f):
             log_error("Illegal line length (> 80)", "line %i" % (line_number + 1), "Rename your variables with shorter names or refactor your expression", line)
         if line.endswith(" \n"):
             log_error("White space at the end of a line", "line %i" % (line_number + 1), "Remove the whitespace", line)
-        if re.match("^(\w+(\s+)?){2,}\(([^!@#$+%^]+)?\)\s*(?!;)", line):
+        if re.match("^(\w+\s*){2,}\(([^!@#$+%^]+)?\)\s*(?!;)", line):
             function_count += 1 
             if "{" in line:
                 log_error("Illegal bracket position", "line %i" % (line_number + 1), "Place the bracket on the next line", line)
@@ -74,10 +74,13 @@ def scan_file(f):
             identation += 2
         if "}" in line:
             identation -= 2
-        if re.match("^\s*((else if|if|while|for)(\s+|\()|else(\s+)?)", lines[line_number - 1]):
+        if re.match("^\s*((else if|if|while|for)(\s+|\()|else\s*)", lines[line_number - 1]):
             identation += 2
-        elif re.match("^\s*?((else if|if|while|for)(\s+|\()|else(\s+)?)", lines[line_number - 2]) and not "{" in lines[line_number - 2] and not "{" in lines[line_number - 1]:
-            identation -= 2
+        else:
+            i = 2
+            while re.match("^\s*((else if|if|while|for)(\s+|\()|else\s*)", lines[line_number - i]) and not "{" in lines[line_number - i] and not "{" in lines[line_number - i + 1]:
+                i += 1;
+                identation -= 2
         if "}" in lines[line_number - 1]:
             identation -= 2
         if identation < 0:
@@ -101,7 +104,7 @@ def check_method(lines, starting_line):
     initializing_vars = True
     line_index = starting_line
     lines_count = 0
-    alignement = re.search("^((unsigned|signed)?\s+)?(\w+)(\*+)?\s+(?=\w|\*)", lines[line_index - 1]).end()
+    alignement = re.search("^((unsigned|signed|static)?\s+)?(\w+)(\*+)?\s+(?=\w|\*)", lines[line_index - 1]).end()
     if alignement % 8 is not 0:
         log_error("Illegal function name alignement", "line %i" % (starting_line), "Use Alt-i to align your function name properly", lines[starting_line - 1])
     while not brackets_to_close is 0:
@@ -116,7 +119,7 @@ def check_method(lines, starting_line):
             if line.strip() is not "}":
                 log_error("Illegal bracket postition", "line %i" % (line_index + 1), "Brackets should be on their own lines", line)
             brackets_to_close -= 1
-        if re.match("^(\s+\w+)?(\s+)?\w+\*?\s+\*?\w+(\s+)?=(\s+)?", line):
+        if re.match("^(\s+\w+)?\s*\w+\*?\s+\*?\w+\s*=", line):
             if initializing_vars:
                 log_error("Illegal variable initialization", "line %i" % (line_index + 1), "Initialize this variable in a separate line from it's declaration", line)
             else:
@@ -124,25 +127,25 @@ def check_method(lines, starting_line):
         if initializing_vars:
             if line.strip() == "":
                 initializing_vars = False
-            elif not re.match("^(\s+\w+)?(\s+)?\w+\*?\s+\*?\w+(\[.*\])?;", line):
+            elif not re.match("^(\s+\w+)?\s*\w+\*?\s+\*?\w+(\[.*\])?;", line):
                 initializing_vars = False
                 if not lines_count == 1:
                     log_error("Missing empty line", "line %i" % (line_index + 1), "Add an empty line after you're done declaring your variables", line)
             elif re.search("^((unsigned|signed)?\s+)?(\w+)(\*+)?\s+(?=\w|\*)", line).end() != alignement:
                 log_error("Illegal variable declaration alignement", "line %i" % (line_index + 1), "Use alt-i to correct your alignement", line)    
         else:
-            if re.match("^(\s+\w+)?(\s+)?\w+\*?\s+\*?\w+(\[.*\])?;", line) and not re.match("^\s+?return", line) and not "=" in line:
+            if re.match("^(\s+\w+)?\s*\w+\*?\s+\*?\w+(\[.*\])?;", line) and not re.match("^\s+?return", line) and not "=" in line:
                 log_error("Illegal variable declaration", "line %i" % (line_index + 1), "Declare this variable before executing commands in this method", line)
             elif line.strip() is "":
                 log_error("Illegal empty line", "line %i" % (line_index + 1), "Remove this empty line", line)
-            elif re.match("^\s+return(\s+?|;|\()", line):
-                if re.match("^(\s+)?return\(", line):
+            elif re.match("^\s+return(\s*|;|\()", line):
+                if re.match("^\s*return\(", line):
                     log_error("Missing whitespace", "line %i" % (line_index + 1), "Add an empty space in between \"return\" and \"(\"", line)
-                if re.match("^(\s+)?return\s+\w", line):
+                if re.match("^\s*return\s+\w", line):
                     log_error("Missing surrounding parenthesis", "line %i" % (line_index + 1), "Add parenthesis before and after your value", line)
-            elif re.match("^(\s+)?(else if|if|while)\(", line):
+            elif re.match("^\s*(else if|if|while)\(", line):
                 log_error("Missing whitespace", "line %i" % (line_index + 1), "Add a white space between your flow control keyword and it's following parenthesis", line)
-            elif re.match("^(\s+)?(for|switch)(\s+)?\(", line):
+            elif re.match("^\s*(for|switch)\s*\(", line):
                 log_error("Illegal C keyword", "line %i" % (line_index + 1), "Remove the incorrect keywords (for, switch, ...)", line);
     if line_index + 1 < len(lines) and not lines[line_index + 1].strip() is "":
         log_error("Missing empty line", "line %i" % (line_index + 1), "There should be an empty line after the end of your function", lines[line_index])        
