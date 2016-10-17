@@ -179,7 +179,7 @@ def main():
     log("Compile your files before using this utility")
     log("This utility isn't official and is only here to help you make less mistakes, DO NOT use it as a way to ensure your code is correct")
     log("USING THIS ON PROJECT SOURCE FILES IS CONSIDERED CHEATING, USE AT YOUR OWN RISK, I AM IN NO WAY RESPONSIBLE FOR YOUR USAGE OF THIS SCRIPT\n", colors.bold)
-    log("\nCHECKING: " + args[1] = "\n")
+    log("\nCHECKING: " + args[1] + "\n")
     f = open_source_file(args[1])
     if not f:
         return
