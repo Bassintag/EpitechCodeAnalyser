@@ -155,7 +155,7 @@ def check_method(lines, starting_line):
         
 def check_header(lines):
     def log_header_error(line=1):
-        log_error("Missing or invalid header", "line %s" % (line + 1), "Remove existing header and use C-c C-h in emacs to generate a new one", lines[line])
+        log_error("Missing or invalid header", "line %s" % (line + 1), "Remove existing header and use C-c C-h in emacs to generate a new one")
     if len(lines) < 9:
         log_header_error()
     header_lines = lines[:9]
