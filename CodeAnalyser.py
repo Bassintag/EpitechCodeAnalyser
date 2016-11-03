@@ -98,8 +98,9 @@ def scan_file(f):
 def check_method(lines, starting_line):
     if not lines[starting_line].endswith("{\n"):
         log_error("Illegal function syntax", "line %i" % starting_line, "This line should only contain the opening bracket", lines[starting_line])
-    if starting_line > 1 and lines[starting_line - 2].strip() is not "":
-        log_error("Missing empty line", "line %i" % starting_line - 1, "There should be an empty line before the start of your function", lines[starting_line - 1])
+    prev = lines[starting_line - 2].strip()
+    if starting_line > 1 and (prev is not "" and not prev.startswith("*/")):
+        log_error("Missing empty line", "line %i" % (starting_line - 1), "There should be an empty line before the start of your function", lines[starting_line - 1])
     brackets_to_close = 1
     initializing_vars = True
     line_index = starting_line
