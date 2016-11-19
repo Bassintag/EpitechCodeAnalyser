@@ -17,17 +17,20 @@ def log(message, color=colors.clear):
     print(color + message + colors.clear);
 
 def log_error(error_type, location="in file", advice=None, line=None):
-    log("\n/!\\ AN ERROR HAS BEEN FOUND /!\\", colors.error)
-    log("Error Details:")
-    log("   Error type: %s" % error_type)
-    log("   Error location: %s" % location)
-    if line is not None:
-        log("   |-> Line: %s " % line[:-1])
-    if advice is not None:
-        log("   Advice: " + advice)
-    log("--------------------------------\n")
+    if compact:
+        log("Error: %s%s @ %s\n" % (colors.clear, error_type, location), colors.error)
+    else:
+        log("\n/!\\ AN ERROR HAS BEEN FOUND /!\\", colors.error)
+        log("Error Details:")
+        log("   Error type: %s" % error_type)
+        log("   Error location: %s" % location)
+        if line is not None:
+            log("   |-> Line: %s " % line[:-1])
+        if advice is not None:
+            log("   Advice: " + advice)
+        log("--------------------------------\n")
     global error_count
-    error_count += 1    
+    error_count += 1
 
 def open_source_file(path):
     if not os.path.isfile(path):
@@ -57,8 +60,8 @@ def scan_file(f):
             log_error("Illegal line length (> 80)", "line %i" % (line_number + 1), "Rename your variables with shorter names or refactor your expression", line)
         if line.endswith(" \n"):
             log_error("White space at the end of a line", "line %i" % (line_number + 1), "Remove the whitespace", line)
-        if re.match("^(\w+\s*){2,}\(([^!@#$+%^]+)?\)\s*(?!;)", line):
-            function_count += 1 
+        if re.match("^(\w+\s*)(\w*\s*)\(([^!@#$+%^]+)?\)\s*(?!;)", line):
+            function_count += 1
             if "{" in line:
                 log_error("Illegal bracket position", "line %i" % (line_number + 1), "Place the bracket on the next line", line)
             else:
@@ -88,13 +91,13 @@ def scan_file(f):
         if line.strip() is not "":
             spaces = len(line) - len(line.lstrip())
             if not spaces is identation:
-                log_error("Illegal identation (expected %i spaces)" % identation, "line %i" % (line_number + 1), "Fix your identation with C-c C-q or use Tab", line)
+                if check_tabs:
+                    log_error("Illegal identation (expected %i spaces)" % identation, "line %i" % (line_number + 1), "Fix your identation with C-c C-q or use Tab", line)
                 identation = spaces
         else:
             if line_number > 0 and lines[line_number - 1].strip() is "":
                 log_error("Illegal empty line", "line %i" % (line_number + 1), "Remove this empty line")
         line_number += 1
-        
 def check_method(lines, starting_line):
     if not lines[starting_line].endswith("{\n"):
         log_error("Illegal function syntax", "line %i" % starting_line, "This line should only contain the opening bracket", lines[starting_line])
@@ -120,7 +123,7 @@ def check_method(lines, starting_line):
             if line.strip() is not "}":
                 log_error("Illegal bracket postition", "line %i" % (line_index + 1), "Brackets should be on their own lines", line)
             brackets_to_close -= 1
-        if re.match("^(\s+\w+)?\s*\w+\*?\s+\*?\w+\s*=", line):
+        if re.match("^(\s+\w+)?\s*\w+\**\s+\**\w+\s*=", line):
             if initializing_vars:
                 log_error("Illegal variable initialization", "line %i" % (line_index + 1), "Initialize this variable in a separate line from it's declaration", line)
             else:
@@ -128,12 +131,12 @@ def check_method(lines, starting_line):
         if initializing_vars:
             if line.strip() == "":
                 initializing_vars = False
-            elif not re.match("^(\s+\w+)?\s*\w+\*?\s+\*?\w+(\[.*\])?;", line):
+            elif not re.match("^(\s+\w+)?\s*\w+\**\s+\**\w+(\[.*\])?;", line):
                 initializing_vars = False
                 if not lines_count == 1:
                     log_error("Missing empty line", "line %i" % (line_index + 1), "Add an empty line after you're done declaring your variables", line)
-            elif re.search("^((unsigned|signed)?\s+)?(\w+)(\*+)?\s+(?=\w|\*)", line).end() != alignement:
-                log_error("Illegal variable declaration alignement", "line %i" % (line_index + 1), "Use alt-i to correct your alignement", line)    
+            elif re.search("^((\s*)(unsigned|signed|struct)?\s+)?(\w+)(\*+)?\s+(?=\w|\*)", line).end() != alignement:
+                log_error("Illegal variable declaration alignement", "line %i" % (line_index + 1), "Use alt-i to correct your alignement", line)
         else:
             if re.match("^(\s+\w+)?\s*\w+\*?\s+\*?\w+(\[.*\])?;", line) and not re.match("^\s+?return", line) and not "=" in line:
                 log_error("Illegal variable declaration", "line %i" % (line_index + 1), "Declare this variable before executing commands in this method", line)
@@ -149,11 +152,11 @@ def check_method(lines, starting_line):
             elif re.match("^\s*(for|switch)\s*\(", line):
                 log_error("Illegal C keyword", "line %i" % (line_index + 1), "Remove the incorrect keywords (for, switch, ...)", line);
     if line_index + 1 < len(lines) and not lines[line_index + 1].strip() is "":
-        log_error("Missing empty line", "line %i" % (line_index + 1), "There should be an empty line after the end of your function", lines[line_index])        
+        log_error("Missing empty line", "line %i" % (line_index + 1), "There should be an empty line after the end of your function", lines[line_index])
     if lines_count - 1 > 25:
         log_error("Illegal number of lines in function (%i > 25)" % (lines_count - 1), "line %i" % (line_index - lines_count % 25), "Reduce number of lines, try using less variables for example")
     return line_index - starting_line
-        
+
 def check_header(lines):
     def log_header_error(line=1):
         log_error("Missing or invalid header", "line %s" % (line + 1), "Remove existing header and use C-c C-h in emacs to generate a new one")
@@ -174,22 +177,37 @@ def main():
     if len(args) is 1:
         log("Fatal: You must specify a file to analyse")
         return
-    global error_count
+    global error_count, compact, check_tabs
+    i = 1
     error_count = 0
+    compact = 1
+    check_tabs = 0
+    flag = True
+    while flag:
+        flag = False
+        if args[i].strip() == "-v":
+            i += 1
+            compact = 0
+            flag = True
+        if args[i].strip() == "-t":
+            i += 1
+            check_tabs = 1
+            flag = True
     log("\n/!\\ DISCLAIMER /!\\", colors.warning)
     log("Compile your files before using this utility")
     log("This utility isn't official and is only here to help you make less mistakes, DO NOT use it as a way to ensure your code is correct")
     log("USING THIS ON PROJECT SOURCE FILES IS CONSIDERED CHEATING, USE AT YOUR OWN RISK, I AM IN NO WAY RESPONSIBLE FOR YOUR USAGE OF THIS SCRIPT\n", colors.bold)
-    log("\nCHECKING: " + args[1] + "\n")
-    f = open_source_file(args[1])
-    if not f:
-        return
-    scan_file(f)
-    log("Done checking %s" % args[1])
+    for arg in args[i:]:
+        log("\nCHECKING: " + arg + "\n")
+        f = open_source_file(arg)
+        if not f:
+            continue
+        scan_file(f)
+        log("Done checking %s" % arg)
     if error_count > 0:
-        log("There is a grand total of " + colors.error + "%i" % error_count + " error(s)" + colors.clear + " in your file")
+        log("There is a grand total of " + colors.error + "%i" % error_count + " error(s)" + colors.clear + " in your files")
     else:
         log("No error has been detected, however this script might not find everything so be carefull", colors.good)
-    
+
 if __name__ == "__main__":
     main()
