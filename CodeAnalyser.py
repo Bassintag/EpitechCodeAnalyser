@@ -206,8 +206,10 @@ def main():
         log("Done checking %s" % arg)
     if error_count > 0:
         log("There is a grand total of " + colors.error + "%i" % error_count + " error(s)" + colors.clear + " in your files")
+        sys.exit(1);
     else:
         log("No error has been detected, however this script might not find everything so be carefull", colors.good)
+        sys.exit(0);
 
 if __name__ == "__main__":
     main()
