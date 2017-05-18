@@ -60,7 +60,7 @@ def scan_file(f):
             log_error("Illegal line length (> 80)", "line %i" % (line_number + 1), "Rename your variables with shorter names or refactor your expression", line)
         if line.endswith(" \n"):
             log_error("White space at the end of a line", "line %i" % (line_number + 1), "Remove the whitespace", line)
-        if re.match("^(\w+\s*)(\w*\s*)\(([^!@#$+%^]+)?\)\s*(?!;)", line):
+        if re.match("^(\w+\s*)(\w*\s*)\(([^!@#$+%^]+)?\)\s*(?!;)$", line):
             function_count += 1
             if "{" in line:
                 log_error("Illegal bracket position", "line %i" % (line_number + 1), "Place the bracket on the next line", line)
